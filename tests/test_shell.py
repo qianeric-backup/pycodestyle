@@ -115,6 +115,16 @@ class ShellTestCase(unittest.TestCase):
         self.assertFalse(stderr)
         self.assertTrue(stdout.startswith('fictitious.py:1:1: E902 '))
 
+    def test_check_non_existent_config(self):
+        pycodestyle.PROJECT_CONFIG = ()
+        stdout, stderr, errcode = self.pycodestyle(
+            '--config=fictitious.cfg', 'simple.py')
+        self.assertEqual(errcode, 2)
+        self.assertFalse(stdout)
+        self.assertEqual(stderr.splitlines()[-1],
+                         'pycodestyle: error: could not read config file: '
+                         'fictitious.cfg')
+
     def test_check_noarg(self):
         # issue #170: do not read stdin by default
         pycodestyle.PROJECT_CONFIG = ()

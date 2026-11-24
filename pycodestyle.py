@@ -2559,6 +2559,9 @@ def read_config(options, args, arglist, parser):
 
     cli_conf = options.config
 
+    if cli_conf and not os.path.isfile(cli_conf):
+        parser.error('could not read config file: {}'.format(cli_conf))
+
     local_dir = os.curdir
 
     if USER_CONFIG and os.path.isfile(USER_CONFIG):
