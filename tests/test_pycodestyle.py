@@ -50,6 +50,30 @@ f'hello {{ {thing} }} world'
         assert checker.logical_line == "f'xxxxxxxxxxxxxxxxxxxxxxxxx'"
 
 
+def test_read_config_broken_cli_config(tmp_path):
+    broken = tmp_path.joinpath('bad.cfg')
+    broken.write_text('not ini\n')
+    parser = get_parser()
+    parser.add_option('--config')
+    opts, args = parser.parse_args(['--config', str(broken)])
+    with pytest.raises(SystemExit) as exc_info:
+        read_config(opts, args, ['--config', str(broken)], parser)
+    assert exc_info.value.code == 2
+
+
+def test_read_config_broken_project_config(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    tmp_path.joinpath('setup.cfg').write_text('not ini\n')
+    target = tmp_path.joinpath('t.py')
+    target.touch()
+    parser = get_parser()
+    parser.add_option('--config')
+    opts, args = parser.parse_args([str(target)])
+    with pytest.raises(SystemExit) as exc_info:
+        read_config(opts, args, [str(target)], parser)
+    assert exc_info.value.code == 2
+
+
 def test_read_config_prefix(tmp_path):
     tmp_path.joinpath('setup.cfg').write_text('[pycodestyle]\nexclude = root')
 

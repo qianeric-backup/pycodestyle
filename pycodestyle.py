@@ -2544,6 +2544,20 @@ def get_parser(prog='pycodestyle', version=__version__):
     return parser
 
 
+def _read_config(config, paths, parser):
+    """Read configuration, reporting a broken file as a usage error."""
+    try:
+        return config.read(paths)
+    except configparser.Error as exc:
+        # the messages are multi-line; the first line plus the location
+        # is what a user needs here
+        source = getattr(exc, 'source', None) or paths
+        lineno = getattr(exc, 'lineno', None)
+        where = '%s:%s' % (source, lineno) if lineno else source
+        message = str(exc).splitlines()[0]
+        parser.error('cannot read configuration %s: %s' % (where, message))
+
+
 def read_config(options, args, arglist, parser):
     """Read and parse configurations.
 
@@ -2564,11 +2578,12 @@ def read_config(options, args, arglist, parser):
     if USER_CONFIG and os.path.isfile(USER_CONFIG):
         if options.verbose:
             print('user configuration: %s' % USER_CONFIG)
-        config.read(USER_CONFIG)
+        _read_config(config, USER_CONFIG, parser)
 
     parent = tail = args and os.path.abspath(os.path.commonpath(args))
     while tail:
-        if config.read(os.path.join(parent, fn) for fn in PROJECT_CONFIG):
+        config_files = (os.path.join(parent, fn) for fn in PROJECT_CONFIG)
+        if _read_config(config, config_files, parser):
             local_dir = parent
             if options.verbose:
                 print('local configuration: in %s' % parent)
@@ -2578,7 +2593,7 @@ def read_config(options, args, arglist, parser):
     if cli_conf and os.path.isfile(cli_conf):
         if options.verbose:
             print('cli configuration: %s' % cli_conf)
-        config.read(cli_conf)
+        _read_config(config, cli_conf, parser)
 
     pycodestyle_section = None
     if config.has_section(parser.prog):
